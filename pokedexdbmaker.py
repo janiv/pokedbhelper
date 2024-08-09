@@ -1,16 +1,9 @@
-import hidden
 import requests
 import psycopg2
 from psycopg2 import sql
 
-# hidden.py is a file that will hold your postgres database information
-# You could hard code it.
-secrets = hidden.secrets()
 
-# createPokedex uses a txt file created by txtPokedex to write to a postgres
-# database. Splitting the pokeAPI call from the "db migration" is sanity
-# and error checking
-def createPokedex(secrets, file_name):
+def createPokedex(secrets: dict, file_name: str):
     db_info = secrets
     conn = psycopg2.connect(database=db_info['database'],
                             user=db_info['user'],
@@ -28,7 +21,7 @@ def createPokedex(secrets, file_name):
                 """)
     conn.commit()
     print("Table created successfully")
-    file = open(file_name, "r")
+    file = open(file_name+".txt", "r")
     file.readline()
     for line in file:
         line = line.strip()
@@ -55,7 +48,7 @@ def createPokedex(secrets, file_name):
     conn.close()
 
 
-def findEvolutionLines(secrets, min_id: int, max_id: int):
+def findEvolutionLines(secrets: dict, min_id: int, max_id: int):
     db_info = secrets
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
@@ -64,7 +57,9 @@ def findEvolutionLines(secrets, min_id: int, max_id: int):
                             port=db_info['port'])
     cur = conn.cursor()
     base_url = "https://pokeapi.co/api/v2/evolution-chain/"
-    for i in range(min_id, max_id):
+    for i in range(min_id, max_id+1):
+        if (i == 210):
+            continue
         url = base_url + str(i)
         print(f"Getting data from: {url}")
         pokes = []
@@ -101,7 +96,7 @@ def txtPokedex(file_name: str, minId: None, maxId: None):
             min_id = minId
             max_id = maxId
 
-    f = open(file_name, "w")
+    f = open(file_name+".txt", "w")
     f.write("id name type1 type2\n")
     base_url = "https://pokeapi.co/api/v2/pokemon/"
     for i in range(min_id, max_id+1):
@@ -118,20 +113,17 @@ def txtPokedex(file_name: str, minId: None, maxId: None):
     f.close()
 
 
-def pokedexHelper():
-    file_name = input("Enter desired pokedex txt file name e.g 'redanbluedex.txt':")
-    print("Next we will for the range of pokemon id's to be searched")
-    print("You can check websites such as serebii.net or bulbapedia for correct")
-    print("id ranges for a given game. Use national dex numbers.")
-    min_id = input("Enter lowest pokemon id in the game:")
-    max_id = input("Enter highest pokemon id in the game:")
+def evo_lines_max(dex_max_val: int):
+    if dex_max_val == 151:
+        return 78
+    if dex_max_val == 251:
+        return 
+    if dex_max_val == 386:
+        return 202
+
+
+def pokedexHelper(file_name: str, min_id: int, max_id: int, secrets: dict):
     txtPokedex(file_name, int(min_id), int(max_id))
     createPokedex(secrets, file_name)
-    findEvolutionLines(min_id, max_id)
-
-
-#pokedexHelper()
-#txtPokedex("reddex.txt", 1, 151)
-#createPokedex(secrets, "reddex.txt")
-findEvolutionLines(secrets, 1, 151)
-
+    evo_max_id = evo_lines_max(max_id)
+    findEvolutionLines(secrets, min_id, evo_max_id)
