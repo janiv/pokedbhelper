@@ -49,8 +49,8 @@ def findLocationAreasURL(gameName: str, location_file_name: str):
     loc_area_f.close()
 
 
-def getID(poke_name: str) -> str:
-    db_info = secrets
+def getID(db_key: dict, poke_name: str) -> str:
+    db_info = db_key
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
                             host=db_info['host'],
@@ -63,7 +63,8 @@ def getID(poke_name: str) -> str:
     return result
 
 
-def createDB(location_area_name: str, pokes: List[str], methods: List[str]):
+def createDB(location_area_name: str, pokes: List[str], methods: List[str],
+             loc_db_key: dict, pokedex_db_key: dict):
     db_info = secrets
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
@@ -94,7 +95,8 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str]):
     conn.close()
 
 
-def createLocation_Area_Tables(location_areas_file: str, game_name: str):
+def createLocation_Area_Tables(location_areas_file: str, game_name: str,
+                               loc_db_key: dict, pokedex_db_key: dict):
     file = open(location_areas_file, 'r')
     for line in file:
         line = line.strip()
@@ -119,7 +121,8 @@ def createLocation_Area_Tables(location_areas_file: str, game_name: str):
                             enc_meth = game.get('encounter_details')[0].get('method').get('name')
                             encounter_methods.append(enc_meth)
         table_name = table_name.replace("-", "_")
-        createDB(table_name, valid_pokes, encounter_methods)
+        createDB(table_name, valid_pokes, encounter_methods,
+                 loc_db_key, pokedex_db_key)
 
 
 createLocation_Area_Tables("red_location_areas.txt", "red")

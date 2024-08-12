@@ -10,8 +10,12 @@ def db_access(db: str):
 
 def pokedex_db_maker(poke_gen: str, max_id_val: int):
     pokedex_db_key = db_access(poke_gen)
-    pokedexdbmaker.pokedexHelper(file_name=poke_gen, min_id=1, max_id=max_id_val,
-                                 secrets=pokedex_db_key)
+    pokedexdbmaker.pokedexHelper(file_name=poke_gen, min_id=1,
+                                 max_id=max_id_val, secrets=pokedex_db_key)
+
+
+def encounter_db_maker(poke_gen: str, game_name: str, poke_db_key: dict):
+    return 0
 
 
 gens_list = [["gen_3_pokedex", 386]]
