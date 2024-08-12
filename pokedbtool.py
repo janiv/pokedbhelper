@@ -18,14 +18,18 @@ def pokedex_db_maker(poke_gen: str, max_id_val: int):
 def encounter_db_maker(poke_gen: str, game_name: str, game_area_id: int):
     pokedex_db_key = db_access(poke_gen)
     locations_db_key = db_access(game_name)
-    locations_file = findLocations(gameName=game_name, id = game_area_id)
+    locations_file = findLocations(gameName=game_name, id=game_area_id)
     location_area_file = findLocationAreasURL(gameName=game_name,
-                                              location_file_name=locations_file)
+                                              location_file_name=locations_file
+                                              )
     createLocation_Area_Tables(location_areas_file=location_area_file,
-                               game_name= game_name, loc_db_key= locations_db_key,
-                               pokedex_db_key= pokedex_db_key)
+                               game_name=game_name,
+                               loc_db_key=locations_db_key,
+                               pokedex_db_key=pokedex_db_key)
 
 
-games = [["gen_1_pokedex", "blue", 1]]
+games = [["gen_3_pokedex", "ruby", 3],
+         ["gen_3_pokedex", "sapphire", 3],
+         ["gen_3_pokedex", "emerald", 3]]
 for g in games:
     encounter_db_maker(poke_gen=g[0], game_name=g[1], game_area_id=g[2])

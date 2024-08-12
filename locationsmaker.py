@@ -76,7 +76,7 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str],
     cur.execute(sql.SQL("""CREATE TABLE IF NOT EXISTS {} (
                     poke_id integer NOT NULL PRIMARY KEY,
                     pokemon VARCHAR (30) NOT NULL,
-                    encounter_method VARCHAR(15) NOT NULL);""")
+                    encounter_method VARCHAR(30) NOT NULL);""")
                 .format(sql.Identifier(f'{area_name}')))
     for i in range(len(pokes)):
         id = getID(pokedex_db_key, pokes[i])[0]
