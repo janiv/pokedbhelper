@@ -5,9 +5,6 @@ from psycopg2 import sql
 from typing import List
 
 
-secrets = hidden.secrets()
-
-
 def findLocations(gameName: str, id: int):
     file_name = gameName + "_locations.txt"
     f = open(file_name, "w")
@@ -22,6 +19,7 @@ def findLocations(gameName: str, id: int):
         f.write(str(id) + ", " + location.get('name') + ", " +
                 location.get('url') + '\n')
     f.close()
+    return file_name
 
 
 def findLocationAreasURL(gameName: str, location_file_name: str):
@@ -30,7 +28,8 @@ def findLocationAreasURL(gameName: str, location_file_name: str):
     f = open(location_file_name, 'r')
     data = f.readlines()
     f.close()
-    loc_area_f = open(gameName+"_location_areas.txt", "w")
+    loc_area_file_name = gameName + "_location_areas.txt"
+    loc_area_f = open(loc_area_file_name, "w")
     data = data[1:]
     for line in data:
         line = line.split(", ")
@@ -45,8 +44,8 @@ def findLocationAreasURL(gameName: str, location_file_name: str):
             areas_string = areas_string + " " + area.get("url")
         loc_area_string = line[0].strip() + " " + areas_string + "\n"
         loc_area_f.write(loc_area_string)
-
     loc_area_f.close()
+    return loc_area_file_name
 
 
 def getID(db_key: dict, poke_name: str) -> str:
@@ -65,7 +64,7 @@ def getID(db_key: dict, poke_name: str) -> str:
 
 def createDB(location_area_name: str, pokes: List[str], methods: List[str],
              loc_db_key: dict, pokedex_db_key: dict):
-    db_info = secrets
+    db_info = loc_db_key
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
                             host=db_info['host'],
@@ -80,7 +79,7 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str],
                     encounter_method VARCHAR(15) NOT NULL);""")
                 .format(sql.Identifier(f'{area_name}')))
     for i in range(len(pokes)):
-        id = getID(pokes[i])[0]
+        id = getID(pokedex_db_key, pokes[i])[0]
         poke = pokes[i]
         meth = methods[i]
         print("pokemon: " + poke)
@@ -123,6 +122,3 @@ def createLocation_Area_Tables(location_areas_file: str, game_name: str,
         table_name = table_name.replace("-", "_")
         createDB(table_name, valid_pokes, encounter_methods,
                  loc_db_key, pokedex_db_key)
-
-
-createLocation_Area_Tables("red_location_areas.txt", "red")
