@@ -1,9 +1,10 @@
 import requests
 import psycopg2
 from psycopg2 import sql
+from hidden import secrets
 
 
-def createPokedex(secrets: dict, file_name: str):
+def createPokedex(secrets: dict, file_name: str, poke_gen: str):
     db_info = secrets
     conn = psycopg2.connect(database=db_info['database'],
                             user=db_info['user'],
@@ -11,17 +12,19 @@ def createPokedex(secrets: dict, file_name: str):
                             password=db_info['pass'],
                             port=db_info['port'])
     cur = conn.cursor()
-    cur.execute("""DROP TABLE IF EXISTS pokedex""")
-    cur.execute("""CREATE TABLE pokedex(
+    cur.execute(sql.SQL("""DROP TABLE IF EXISTS {}""").format(sql.Identifier(
+        f'{poke_gen}'
+    )))
+    cur.execute(sql.SQL("""CREATE TABLE {}(
                 id INTEGER PRIMARY KEY,
                 poke_name VARCHAR (50) UNIQUE NOT NULL,
                 poke_type_1 VARCHAR (20) NOT NULL,
                 poke_type_2 VARCHAR (20),
                 evo_id INTEGER);
-                """)
+                """).format(sql.Identifier(f'{poke_gen}')))
     conn.commit()
-    print("Table created successfully")
-    file = open(file_name+".txt", "r")
+    print(f"{poke_gen} table created successfully")
+    file = open(file_name, "r")
     file.readline()
     for line in file:
         line = line.strip()
@@ -30,25 +33,27 @@ def createPokedex(secrets: dict, file_name: str):
             id = items[0]
             name = items[1]
             type_1 = items[2]
-            cur.execute("""INSERT INTO pokedex(id, poke_name,
-                        poke_type_1) VALUES (%s, %s, %s);""",
-                        (id, name, type_1))
+            cur.execute(sql.SQL("""INSERT INTO {} (id, poke_name,
+                        poke_type_1) VALUES (%s, %s, %s);""").format(
+                            sql.Identifier(f'{poke_gen}')),
+                        (id, name, type_1,))
         else:
             id = items[0]
             name = items[1]
             type_1 = items[2]
             type_2 = items[3]
-            cur.execute("""INSERT INTO pokedex(id, poke_name,
+            cur.execute(sql.SQL("""INSERT INTO {} (id, poke_name,
                         poke_type_1, poke_type_2) VALUES
-                        (%s, %s, %s, %s);""",
-                        (id, name, type_1, type_2))
-        print(f"Inserted {name} into pokedex")
+                        (%s, %s, %s, %s);""").format(
+                            sql.Identifier(f'{poke_gen}')),
+                        (id, name, type_1, type_2,))
+        print(f"Inserted {name} into {poke_gen}")
     file.close()
     conn.commit()
     conn.close()
 
 
-def findEvolutionLines(secrets: dict, min_id: int, max_id: int):
+def findEvolutionLines(secrets: dict, poke_gen: str, min_id: int, max_id: int):
     db_info = secrets
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
@@ -77,8 +82,9 @@ def findEvolutionLines(secrets: dict, min_id: int, max_id: int):
             pokes.append(second)
         for poke in pokes:
             try:
-                cur.execute(sql.SQL("""UPDATE pokedex SET evo_id = %s WHERE
-                                    poke_name = %s"""), (i, poke,))
+                cur.execute(sql.SQL("""UPDATE {} SET evo_id = %s WHERE
+                                    poke_name = %s""").format(
+                                        sql.Identifier(f'{poke_gen}')), (i, poke,))
             except psycopg2.Error as err:
                 print(err)
                 print(f"Something went wrong with id = {i}")
@@ -127,3 +133,5 @@ def pokedexHelper(file_name: str, min_id: int, max_id: int, secrets: dict):
     createPokedex(secrets, file_name)
     evo_max_id = evo_lines_max(max_id)
     findEvolutionLines(secrets, min_id, evo_max_id)
+
+findEvolutionLines(secrets=secrets(), poke_gen="gen_1_pokedex", min_id=1, max_id=78)

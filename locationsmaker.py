@@ -48,7 +48,7 @@ def findLocationAreasURL(gameName: str, location_file_name: str):
     return loc_area_file_name
 
 
-def getID(db_key: dict, poke_name: str) -> str:
+def getID(db_key: dict, poke_name: str, gen_pokedex: str) -> str:
     db_info = db_key
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
@@ -56,15 +56,16 @@ def getID(db_key: dict, poke_name: str) -> str:
                             password=db_info["pass"],
                             port=db_info['port'])
     cur = conn.cursor()
-    query = "SELECT id FROM pokedex where poke_name = %s;"
-    cur.execute(query, (poke_name,))
+    #query = "SELECT id FROM pokedex where poke_name = %s;"
+    cur.execute(sql.SQL("""SELECT id FROM {} where poke_name = %s""")
+             .format(sql.Identifier(f'{gen_pokedex}')), (poke_name,))
     result = cur.fetchone()
     return result
 
 
 def createDB(location_area_name: str, pokes: List[str], methods: List[str],
-             loc_db_key: dict, pokedex_db_key: dict):
-    db_info = loc_db_key
+             db_key: dict, gen_pokedex:str):
+    db_info = db_key
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
                             host=db_info['host'],
@@ -79,7 +80,7 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str],
                     encounter_method VARCHAR(30) NOT NULL);""")
                 .format(sql.Identifier(f'{area_name}')))
     for i in range(len(pokes)):
-        id = getID(pokedex_db_key, pokes[i])[0]
+        id = getID(db_key, pokes[i], gen_pokedex)[0]
         poke = pokes[i]
         meth = methods[i]
         print("pokemon: " + poke)
@@ -95,7 +96,7 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str],
 
 
 def createLocation_Area_Tables(location_areas_file: str, game_name: str,
-                               loc_db_key: dict, pokedex_db_key: dict):
+                               db_key: dict, gen_pokedex:str):
     file = open(location_areas_file, 'r')
     for line in file:
         line = line.strip()
@@ -120,5 +121,10 @@ def createLocation_Area_Tables(location_areas_file: str, game_name: str,
                             enc_meth = game.get('encounter_details')[0].get('method').get('name')
                             encounter_methods.append(enc_meth)
         table_name = table_name.replace("-", "_")
+        table_name = game_name + "_" + table_name
         createDB(table_name, valid_pokes, encounter_methods,
-                 loc_db_key, pokedex_db_key)
+                 db_key, gen_pokedex)
+
+createLocation_Area_Tables(location_areas_file="red_location_areas.txt",
+                           game_name="red", db_key=hidden.secrets(),
+                           gen_pokedex="gen_1_pokedex")
