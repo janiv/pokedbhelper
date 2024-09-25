@@ -126,6 +126,10 @@ def evo_lines_max(dex_max_val: int):
         return 129
     if dex_max_val == 386:
         return 202
+    if dex_max_val == 493:
+        return 254
+    if dex_max_val == 649:
+        return 336 
     return dex_max_val
 
 
@@ -142,8 +146,11 @@ def pokedexHelperNoTXT(poke_gen:str, min_id: int, max_id: int,
     evo_max_id = evo_lines_max(max_id)
     findEvolutionLines(secrets, poke_gen, min_id, evo_max_id)
 
+generations = [("gen_1_dex", 1, 151),
+               ("gen_2_dex", 1, 251),
+               ("gen_3_dex", 1, 386),
+               ("gen_4_dex", 1, 493),
+               ("gen_5_dex", 1, 649)]
 
-gens = [["gen_2_pokedex", 1, 251, secrets()],
-        ["gen_3_pokedex", 1, 386, secrets()]]
-for gen in gens:
-    pokedexHelperNoTXT(gen[0], gen[1], gen[2], gen[3])
+for gen in generations:
+    txtPokedex(gen[0], gen[1], gen[2])
