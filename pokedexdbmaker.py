@@ -9,7 +9,7 @@ def createPokedex(secrets: dict, file_name: str, poke_gen: str):
     conn = psycopg2.connect(database=db_info['database'],
                             user=db_info['user'],
                             host=db_info['host'],
-                            password=db_info['pass'],
+                            password=db_info['password'],
                             port=db_info['port'])
     cur = conn.cursor()
     cur.execute(sql.SQL("""DROP TABLE IF EXISTS {}""").format(sql.Identifier(
@@ -58,37 +58,39 @@ def findEvolutionLines(secrets: dict, poke_gen: str, min_id: int, max_id: int):
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
                             host=db_info['host'],
-                            password=db_info["pass"],
+                            password=db_info["password"],
                             port=db_info['port'])
     cur = conn.cursor()
     base_url = "https://pokeapi.co/api/v2/evolution-chain/"
     for i in range(min_id, max_id+1):
-        if (i == 210):
+        try:
+            url = base_url + str(i)
+            print(f"Getting data from: {url}")
+            pokes = []
+            response = requests.get(url)
+            raw_data = response.json()
+            chain = raw_data.get("chain")
+            base_species = chain.get('species').get('name')
+            pokes.append(base_species)
+            evolves_to = chain.get("evolves_to")
+            for evo in evolves_to:
+                if len(evo.get("evolves_to")) > 0:
+                    third = evo.get("evolves_to")
+                    pokes.append(third[0].get("species").get("name"))
+                second = evo.get("species").get("name")
+                pokes.append(second)
+            for poke in pokes:
+                try:
+                    cur.execute(sql.SQL("""UPDATE {} SET evo_id = %s WHERE
+                                        poke_name = %s""").format(
+                                            sql.Identifier(f'{poke_gen}')), (i, poke,))
+                except psycopg2.Error as err:
+                    print(err)
+                    print(f"Something went wrong with id = {i}")
+                    continue
+        except:
+            print(f"Could not retrieve evo id: {i}")
             continue
-        url = base_url + str(i)
-        print(f"Getting data from: {url}")
-        pokes = []
-        response = requests.get(url)
-        raw_data = response.json()
-        chain = raw_data.get("chain")
-        base_species = chain.get('species').get('name')
-        pokes.append(base_species)
-        evolves_to = chain.get("evolves_to")
-        for evo in evolves_to:
-            if len(evo.get("evolves_to")) > 0:
-                third = evo.get("evolves_to")
-                pokes.append(third[0].get("species").get("name"))
-            second = evo.get("species").get("name")
-            pokes.append(second)
-        for poke in pokes:
-            try:
-                cur.execute(sql.SQL("""UPDATE {} SET evo_id = %s WHERE
-                                    poke_name = %s""").format(
-                                        sql.Identifier(f'{poke_gen}')), (i, poke,))
-            except psycopg2.Error as err:
-                print(err)
-                print(f"Something went wrong with id = {i}")
-                continue
 
     conn.commit()
     conn.close()
@@ -146,11 +148,10 @@ def pokedexHelperNoTXT(poke_gen:str, min_id: int, max_id: int,
     evo_max_id = evo_lines_max(max_id)
     findEvolutionLines(secrets, poke_gen, min_id, evo_max_id)
 
-generations = [("gen_1_dex", 1, 151),
-               ("gen_2_dex", 1, 251),
-               ("gen_3_dex", 1, 386),
-               ("gen_4_dex", 1, 493),
-               ("gen_5_dex", 1, 649)]
-
-for gen in generations:
-    txtPokedex(gen[0], gen[1], gen[2])
+db_key = secrets()
+gens = [
+         ("gen_5_dex", 1, 649)
+        ]
+findEvolutionLines(db_key, "gen_4_dex", 1, 493)
+for gen in gens:
+    pokedexHelperNoTXT(gen[0], gen[1], gen[2], db_key)
