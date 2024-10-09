@@ -53,9 +53,11 @@ def getID(db_key: dict, poke_name: str, gen_pokedex: str) -> str:
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
                             host=db_info['host'],
-                            password=db_info["pass"],
+                            password=db_info["password"],
                             port=db_info['port'])
     cur = conn.cursor()
+    if poke_name == "basculin-blue-striped":
+        poke_name = "basculin-red-striped"
     #query = "SELECT id FROM pokedex where poke_name = %s;"
     cur.execute(sql.SQL("""SELECT id FROM {} where poke_name = %s""")
              .format(sql.Identifier(f'{gen_pokedex}')), (poke_name,))
@@ -69,7 +71,7 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str],
     conn = psycopg2.connect(database=db_info["database"],
                             user=db_info["user"],
                             host=db_info['host'],
-                            password=db_info["pass"],
+                            password=db_info["password"],
                             port=db_info['port'])
     cur = conn.cursor()
     print("Attempting to create: " + location_area_name)
@@ -80,6 +82,7 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str],
                     encounter_method VARCHAR(30) NOT NULL);""")
                 .format(sql.Identifier(f'{area_name}')))
     for i in range(len(pokes)):
+        print(pokes[i])
         id = getID(db_key, pokes[i], gen_pokedex)[0]
         poke = pokes[i]
         meth = methods[i]
@@ -107,7 +110,12 @@ def createLocation_Area_Tables(location_areas_file: str, game_name: str,
         encounter_methods = []
         for url in data:
             url = url.strip()
-            response = requests.get(url)
+            print(f"Trying to access: {url}")
+            try:
+                response = requests.get(url, timeout=10)
+            except requests.exceptions.Timeout:
+                print("Timed out")
+                continue
             location_area_data = response.json()
             encounters = location_area_data.get("pokemon_encounters")
             for poke in encounters:
@@ -120,11 +128,26 @@ def createLocation_Area_Tables(location_areas_file: str, game_name: str,
                             valid_pokes.append(pokemon.get("name"))
                             enc_meth = game.get('encounter_details')[0].get('method').get('name')
                             encounter_methods.append(enc_meth)
+        if (len(valid_pokes) == 0): continue
         table_name = table_name.replace("-", "_")
         table_name = game_name + "_" + table_name
         createDB(table_name, valid_pokes, encounter_methods,
                  db_key, gen_pokedex)
 
-createLocation_Area_Tables(location_areas_file="red_location_areas.txt",
-                           game_name="red", db_key=hidden.secrets(),
-                           gen_pokedex="gen_1_pokedex")
+#createLocation_Area_Tables(location_areas_file="red_location_areas.txt",
+#                           game_name="red", db_key=hidden.secrets(),
+#                           gen_pokedex="gen_1_pokedex")
+games = [("red", "kanto_locations.txt"), ("blue", "kanto_locations.txt"), ("yellow", "kanto_locations.txt"),
+         ("silver", "johto_locations.txt"),("gold", "johto_locations.txt"),("crystal", "johto_locations.txt"),
+         ("ruby", "hoenn_locations.txt"), ("sapphire", "hoenn_locations.txt"), ("emerald", "hoenn_locations.txt"),
+         ("leafgreen", "kanto_locations.txt"), ("firered", "kanto_locations.txt"),
+         ("pearl", "sinnoh_locations.txt"),("diamond", "sinnoh_locations.txt"), ("platinum", "sinnoh_locations.txt"),
+         ("heartgold", "johto_locations.txt"), ("soulsilver", "johto_locations.txt"),]
+todo_games = [("black", "unova_locations.txt"), ("white", "unova_locations.txt"), ("black-2", "unova_locations.txt"),
+              ("white-2", "unova_locations.txt")]
+
+dbkey = hidden.secrets()
+for g in todo_games:
+    lfile = g[0] + "_location_areas.txt"
+    createLocation_Area_Tables(location_areas_file=lfile, game_name=g[0], db_key=dbkey,
+                               gen_pokedex="gen_5_dex")

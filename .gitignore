@@ -5,4 +5,5 @@ lib64
 pokedb-env
 pyvenv.cfg
 *.txt
+red_locations.txt
 __pycache__
