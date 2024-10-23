@@ -97,6 +97,52 @@ def createDB(location_area_name: str, pokes: List[str], methods: List[str],
     conn.commit()
     conn.close()
 
+def add_evo_lines(table_names:str, game_name:str, db_key: dict):
+    db_info = db_key
+    conn = psycopg2.connect(database=db_info["database"],
+                            user=db_info["user"],
+                            host=db_info['host'],
+                            password=db_info["password"],
+                            port=db_info['port'])
+    cur = conn.cursor()
+    file = open(table_names, "r")
+    routes = file.readlines()
+    routes = routes[2:]
+    for route in routes:
+        route = route.strip()
+        route = game_name + "_" + route
+        cur.execute(sql.SQL("""ALTER TABLE {} ADD evo_line_id INTEGER;""").format(sql.Identifier(f'{route}')),)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def update_evo_lines(table_names:str, game_name:str, db_key: dict, pokedex_name:str):
+    db_info = db_key
+    conn = psycopg2.connect(database=db_info["database"],
+                            user=db_info["user"],
+                            host=db_info['host'],
+                            password=db_info["password"],
+                            port=db_info['port'])
+    cur = conn.cursor()
+    file = open(table_names, "r")
+    routes = file.readlines()
+    file.close()
+    routes = routes[2:]
+    for route in routes:
+        route = route.strip()
+        route = game_name + "_" + route
+        cur.execute(sql.SQL("""SELECT poke_id FROM {};""").format(sql.Identifier(f'{route}')),)
+        ids = cur.fetchall()
+        for id in ids:
+            raw_id = id[0]
+            cur.execute(sql.SQL("""SELECT evo_id FROM {} WHERE id=%s""").format(sql.Identifier(f'{pokedex_name}')), (raw_id,))
+            evo_id_tuple = cur.fetchone()
+            evo_id = evo_id_tuple[0]
+            cur.execute(sql.SQL("""UPDATE {} SET evo_line_id = %s WHERE poke_id=%s""").format(sql.Identifier(f'{route}')), (evo_id, raw_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
 
 def createLocation_Area_Tables(location_areas_file: str, game_name: str,
                                db_key: dict, gen_pokedex:str):
@@ -137,17 +183,18 @@ def createLocation_Area_Tables(location_areas_file: str, game_name: str,
 #createLocation_Area_Tables(location_areas_file="red_location_areas.txt",
 #                           game_name="red", db_key=hidden.secrets(),
 #                           gen_pokedex="gen_1_pokedex")
-games = [("red", "kanto_locations.txt"), ("blue", "kanto_locations.txt"), ("yellow", "kanto_locations.txt"),
-         ("silver", "johto_locations.txt"),("gold", "johto_locations.txt"),("crystal", "johto_locations.txt"),
-         ("ruby", "hoenn_locations.txt"), ("sapphire", "hoenn_locations.txt"), ("emerald", "hoenn_locations.txt"),
-         ("leafgreen", "kanto_locations.txt"), ("firered", "kanto_locations.txt"),
-         ("pearl", "sinnoh_locations.txt"),("diamond", "sinnoh_locations.txt"), ("platinum", "sinnoh_locations.txt"),
-         ("heartgold", "johto_locations.txt"), ("soulsilver", "johto_locations.txt"),]
-todo_games = [("black", "unova_locations.txt"), ("white", "unova_locations.txt"), ("black-2", "unova_locations.txt"),
-              ("white-2", "unova_locations.txt")]
+#games = [("red", "kanto_locations.txt"), ("blue", "kanto_locations.txt"), ("yellow", "kanto_locations.txt"),
+#         ("silver", "johto_locations.txt"),("gold", "johto_locations.txt"),("crystal", "johto_locations.txt"),
+#         ("ruby", "hoenn_locations.txt"), ("sapphire", "hoenn_locations.txt"), ("emerald", "hoenn_locations.txt"),
+#         ("leafgreen", "kanto_locations.txt"), ("firered", "kanto_locations.txt"),
+#         ("pearl", "sinnoh_locations.txt"),("diamond", "sinnoh_locations.txt"), ("platinum", "sinnoh_locations.txt"),
+#         ("heartgold", "johto_locations.txt"), ("soulsilver", "johto_locations.txt"),]
+#todo_games = [("black", "unova_locations.txt"), ("white", "unova_locations.txt"), ("black-2", "unova_locations.txt"),
+#              ("white-2", "unova_locations.txt")]
 
 dbkey = hidden.secrets()
-for g in todo_games:
-    lfile = g[0] + "_location_areas.txt"
-    createLocation_Area_Tables(location_areas_file=lfile, game_name=g[0], db_key=dbkey,
-                               gen_pokedex="gen_5_dex")
+update_evo_lines(table_names="gen_1_routes.txt", game_name="red", db_key=dbkey, pokedex_name="gen_1_dex")
+#for g in todo_games:
+#    lfile = g[0] + "_location_areas.txt"
+#    createLocation_Area_Tables(location_areas_file=lfile, game_name=g[0], db_key=dbkey,
+#                               gen_pokedex="gen_5_dex")

@@ -1,5 +1,7 @@
 from hidden import secrets
 import pokedexdbmaker
+import psycopg2;
+from psycopg2 import sql;
 from locationsmaker import findLocations, findLocationAreasURL
 from locationsmaker import createLocation_Area_Tables
 
@@ -20,10 +22,3 @@ def encounter_db_maker(poke_gen: str, game_name: str, game_area_id: int,
     createLocation_Area_Tables(location_areas_file=location_area_file,
                                game_name=game_name, db_key=db_key,
                                gen_pokedex=gen_pokedex)
-
-
-games = [["gen_3_pokedex", "ruby", 3],
-         ["gen_3_pokedex", "sapphire", 3],
-         ["gen_3_pokedex", "emerald", 3]]
-for g in games:
-    encounter_db_maker(poke_gen=g[0], game_name=g[1], game_area_id=g[2])
