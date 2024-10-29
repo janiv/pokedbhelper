@@ -111,7 +111,13 @@ def add_evo_lines(table_names:str, game_name:str, db_key: dict):
     for route in routes:
         route = route.strip()
         route = game_name + "_" + route
-        cur.execute(sql.SQL("""ALTER TABLE {} ADD evo_line_id INTEGER;""").format(sql.Identifier(f'{route}')),)
+        try:
+            cur.execute(sql.SQL("""ALTER TABLE {} ADD evo_line_id INTEGER;""").format(sql.Identifier(f'{route}')),)
+            conn.commit()
+        except Exception as error:
+            print(f"Route {route} did not work gave error: {error}")
+            conn.rollback()
+            continue
     conn.commit()
     cur.close()
     conn.close()
@@ -131,14 +137,19 @@ def update_evo_lines(table_names:str, game_name:str, db_key: dict, pokedex_name:
     for route in routes:
         route = route.strip()
         route = game_name + "_" + route
-        cur.execute(sql.SQL("""SELECT poke_id FROM {};""").format(sql.Identifier(f'{route}')),)
-        ids = cur.fetchall()
-        for id in ids:
-            raw_id = id[0]
-            cur.execute(sql.SQL("""SELECT evo_id FROM {} WHERE id=%s""").format(sql.Identifier(f'{pokedex_name}')), (raw_id,))
-            evo_id_tuple = cur.fetchone()
-            evo_id = evo_id_tuple[0]
-            cur.execute(sql.SQL("""UPDATE {} SET evo_line_id = %s WHERE poke_id=%s""").format(sql.Identifier(f'{route}')), (evo_id, raw_id))
+        try:
+            cur.execute(sql.SQL("""SELECT poke_id FROM {};""").format(sql.Identifier(f'{route}')),)
+            ids = cur.fetchall()
+            for id in ids:
+                raw_id = id[0]
+                cur.execute(sql.SQL("""SELECT evo_id FROM {} WHERE id=%s""").format(sql.Identifier(f'{pokedex_name}')), (raw_id,))
+                evo_id_tuple = cur.fetchone()
+                evo_id = evo_id_tuple[0]
+                cur.execute(sql.SQL("""UPDATE {} SET evo_line_id = %s WHERE poke_id=%s""").format(sql.Identifier(f'{route}')), (evo_id, raw_id))
+            conn.commit()
+        except:
+            conn.rollback()
+            continue
     conn.commit()
     cur.close()
     conn.close()
@@ -193,7 +204,9 @@ def createLocation_Area_Tables(location_areas_file: str, game_name: str,
 #              ("white-2", "unova_locations.txt")]
 
 dbkey = hidden.secrets()
-update_evo_lines(table_names="gen_1_routes.txt", game_name="red", db_key=dbkey, pokedex_name="gen_1_dex")
+games = ["yellow", "blue"]
+for g in games:
+    update_evo_lines(table_names="gen_1_routes.txt", game_name=g, db_key=dbkey, pokedex_name="gen_1_dex")
 #for g in todo_games:
 #    lfile = g[0] + "_location_areas.txt"
 #    createLocation_Area_Tables(location_areas_file=lfile, game_name=g[0], db_key=dbkey,
